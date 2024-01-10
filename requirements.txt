@@ -1,0 +1,9 @@
+PyPDF2
+streamlit
+python-dotenv
+sentence-transformers
+pypdf
+langchain_core
+faiss-cpu
+langchain==0.0.316
+openai==0.28.1
