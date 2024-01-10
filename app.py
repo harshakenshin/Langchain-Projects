@@ -33,6 +33,10 @@ def save_uploaded_file(uploaded_file):
     read_name = read_name.split(".pdf")[0]
     pdf_name = "-".join(read_name.split())
     path = f"./docs/{pdf_name}.pdf"
+    if not os.path.exists("./docs") :
+        os.makedirs("./docs")
+    if not os.path.exists('./db') :
+        os.makedirs("./db")
     if not os.path.exists(path):
         with open(path, "wb") as f:
             f.write(uploaded_file.getbuffer())
