@@ -1,4 +1,4 @@
-from langchain.document_loaders import PyPDFLoader
+from langchain.document_loaders import PyPDFLoader,TextLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
@@ -33,13 +33,22 @@ Question: {question}
 """
 prompt_template = PromptTemplate.from_template(template)
 
-def load_pdf(path="./docs/transformer.pdf"):
+def load_pdf(path):
     loader = PyPDFLoader(path)
-    pdf_docs = loader.load()
+    documents = loader.load()
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500, chunk_overlap=50, length_function=len
     )
-    documents = splitter.split_documents(pdf_docs)
+    documents = splitter.split_documents(documents)
+    return documents
+
+def load_txt(path):
+    loader = TextLoader(path)
+    documents = loader.load()
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500, chunk_overlap=50, length_function=len
+    )
+    documents = splitter.split_documents(documents)
     return documents
 
 
@@ -94,28 +103,32 @@ def query_llm(question,obj):
     return output
 
 class QAObject :
-    def __init__(self,pdf_name,embedding_model="all-MiniLM-L6-v2",db_type = "faiss"):
-        self.pdf_name = pdf_name
-        self.pdf_path = f"./docs/{pdf_name}.pdf"
-        self.db_path = f"./db/faiss_{pdf_name}.db"
+    def __init__(self,file_name,embedding_model="all-MiniLM-L6-v2",db_type = "faiss"):
+        self.file_name = file_name
+        self.db_path = f"./db/faiss_{file_name}.db"
         self.embedding_model = embedding_model
         self.db_type = db_type
         self.llm = None
         self.db = None
         self.memory = None
 
-def initialise(pdf_name="transformer") :
-    pdf_path = f"./docs/{pdf_name}.pdf"
-    db_path = f"./db/faiss_{pdf_name}.db"
+def initialise(file_name="transformer",type = "pdf") :
+    file_path = f"./docs/{file_name}.{type}"
+    db_path = f"./db/faiss_{file_name}.db"
     embedding_model = "all-MiniLM-L6-v2"
     db_type = "faiss"
-    docs = load_pdf(pdf_path)
+    if type == "pdf" :
+        docs = load_pdf(file_path)
+    elif type == "txt" :
+        docs = load_txt(file_path)
+    else :
+        raise ValueError(f"type = {type} is not valid choose between .pdf and .txt files only")
     if not os.path.exists(db_path) :
         dump_to_db(docs=docs,dump_path=db_path,embedding_model=embedding_model,db_type=db_type)
     db = load_db(dump_path=db_path, embedding_model=embedding_model)
     llm = ChatOpenAI(temperature=0.2)
     memory = ConversationBufferWindowMemory(return_messages=True, k=10)
-    obj = QAObject(pdf_name=pdf_name)
+    obj = QAObject(file_name=file_name)
     obj.llm = llm
     obj.db = db
     obj.memory = memory
